@@ -73,9 +73,9 @@ of your routing:
   url: '/some-route',
   controller: 'SomeCtrl',
   resolve: {
-    maps: function (Maps) {
+    maps: ['bm.Maps', function (Maps) {
       return Maps;
-    }
+    }]
   }
 // ...
 ```
