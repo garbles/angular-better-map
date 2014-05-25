@@ -7,7 +7,7 @@
     <script type='text/javascript' charset='utf-8' src='src/angular-better-map.js'></script>
   </head>
   <body ng-controller='gabe'>
-    <div id='map' better-map bm-events='events' bm-options='options' bm-markers='markers'></div>
+    <div id='map' better-map bm-events='events' bm-options='options' bm-markers='markers' bm-onload='addCenterMarker'></div>
     <style>
       #map {
         height: 400px;
@@ -33,6 +33,13 @@
             position: params.latLng
           }));
         };
+
+        $scope.addCenterMarker = function (map) {
+          $scope.markers.push(new this.Marker({
+            map: map,
+            position: map.center
+          }));
+        }
 
       }]);
     </script>

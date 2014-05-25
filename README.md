@@ -25,7 +25,7 @@ Requiring Better Map in your application:
 Including the directive in your HTML:
 
 ```html
-  <div id='map' better-map bm-events='events' bm-options='options' bm-markers='markers'></div>
+  <div id='map' better-map bm-events='events' bm-options='options' bm-markers='markers' bm-onload='doSomething'></div>
 ```
 
 Assign variables to `$scope`
@@ -45,7 +45,7 @@ Assign variables to `$scope`
   });
 
   $scope.click = function (e, params) {
-    // events are run in the context of `maps` and so `this` returns `maps`
+    // calling `this` in an event returns the maps API
     $scope.markers.push(new this.Marker({
       // params is modified to return the map object
       map: params.map,
@@ -53,10 +53,18 @@ Assign variables to `$scope`
     }));
   };
 
+  $scope.doSomething = function (map) {
+    // similar to events, `this` is the maps API
+    $scope.markers.push(new this.Marker({
+      map: map,
+      position: map.center
+    }));
+  };
+
 }]);
 ```
 
-After the map is initialized, the options, events, and markers promises will be assigned to their return values, _i.e._
+After the map is initialized, the options, events, markers, and onload promises will be assigned to their return values, _i.e._
 
 ```javascript
 // after initialization
@@ -92,6 +100,13 @@ In this case, your controller could look like this (without any changes to your 
     }));
   };
 
+  $scope.doSomething = function (map) {
+    $scope.markers.push(new this.Marker({
+      map: map,
+      position: map.center
+    }));
+  };
+
   $scope.markers = [];
   $scope.options = { zoom: 15, center: new maps.LatLng(35.784, -78.670) };
   $scope.events = { map_click: $scope.click };
@@ -103,4 +118,5 @@ In this case, your controller could look like this (without any changes to your 
 
 - [ ] Specs (badpokerface)
 - [ ] Add support for other map overlays, such as shapes
-- [ ] Figure out a way to gracefully initialize markers (a bm-onload option?)
+- [x] Figure out a way to gracefully initialize markers (a bm-onload option?)
+- [ ] Make sure marker events are working correctly

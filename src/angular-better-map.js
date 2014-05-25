@@ -139,6 +139,28 @@ function ($q, $parse) {
   }
 }])
 
+.directive('bmOnload', ['$q', 'bm.Maps',
+function ($q, Maps) {
+  return {
+    restrict: 'A',
+    require: 'betterMap',
+    link: function (scope, el, attrs, bmCtrl) {
+      var onload = scope.$eval(attrs.bmOnload);
+
+      onload = $q.when(onload);
+      bmCtrl.wait.push(onload);
+
+      $q.all([onload, Maps, bmCtrl.mapLoaded]).then(function (args) {
+        var ol = args[0],
+          maps = args[1],
+          map = args[2];
+
+        ol.call(maps, map);
+      });
+    }
+  }
+}])
+
 .directive('bmMarkers', ['$q', '$parse', 'bm.Maps', 'bm.MarkerEvents', 'bm.MarkerEventsPrefix',
 function ($q, $parse, Maps, Events, EventsPrefix) {
   return {
