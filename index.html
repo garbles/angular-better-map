@@ -1,0 +1,41 @@
+<html ng-app='app'>
+  <head>
+    <meta http-equiv='content-type' content='text/html; charset=utf-8' />
+
+    <title></title>
+    <script type='text/javascript' charset='utf-8' src='bower_components/angular/angular.js'></script>
+    <script type='text/javascript' charset='utf-8' src='bower_components/angular-route/angular-route.js'></script>
+    <script type='text/javascript' charset='utf-8' src='src/angular-better-map.js'></script>
+  </head>
+  <body ng-controller='gabe'>
+    <div id='map' better-map bm-events='events' bm-options='options' bm-markers='markers'></div>
+    <style>
+      #map {
+        height: 400px;
+        width: 400px;
+      }
+    </style>
+    <script type='text/javascript' charset='utf-8'>
+      angular.module('app', ['betterMap'])
+      .controller('gabe', ['$scope', 'bm.Maps', function ($scope, Maps) {
+        $scope.markers = [];
+
+        $scope.options = Maps.then(function (maps) {
+          return { zoom: 15, center: new maps.LatLng(35.784, -78.670) }
+        });
+
+        $scope.events = Maps.then(function (maps) {
+          return { map_click: $scope.click };
+        });
+
+        $scope.click = function (e, params) {
+          $scope.markers.push(new this.Marker({
+            map: params.map,
+            position: params.latLng
+          }));
+        };
+
+      }]);
+    </script>
+  </body>
+</html>
