@@ -12,6 +12,7 @@ module.exports = function(grunt) {
     files: {
       src: '<%= dir.src %>{,*/}*.js',
       spec: '<%= dir.spec %>{,*/}*.js',
+    },
     concat: {
       build: {
         src: ['<%= files.src %>'],
@@ -54,7 +55,7 @@ module.exports = function(grunt) {
     },
   });
 
-  grunt.registerTask('build', ['clean', 'test', 'concat', 'uglify']);
+  grunt.registerTask('build', ['clean', 'concat', 'uglify']);
   grunt.registerTask('test', ['jshint', 'karma:single']);
   grunt.registerTask('test:continuous', ['jshint', 'karma:continuous']);
 };
