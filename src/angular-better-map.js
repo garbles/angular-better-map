@@ -64,13 +64,9 @@ function ($parse, InstanceExtension) {
       });
     },
     parseEvents: function (eventsObj, el, map) {
-      var that = this;
       angular.forEach(eventsObj, function (event, name) {
         el.bind(name, function (e) {
-          if (arguments[1]) {
-            arguments[1].map = map;
-          }
-          event.apply(that, arguments);
+          event.apply(map, arguments);
         });
       });
     }
@@ -183,7 +179,7 @@ function ($q, Maps) {
           api = args[1],
           map = args[2];
 
-        ol.call(api, map);
+        ol.call(map);
       });
     }
   }
