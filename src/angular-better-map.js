@@ -2,8 +2,8 @@
 
 angular.module('betterMap', [])
 
-.service('bm.Maps', ['$window', '$document', '$q', 'bm.MapsExtension',
-function ($window, $document, $q, MapsExtension) {
+.service('bm.Maps', ['$window', '$document', '$q', 'bm.MapsExtension', 'bm.MapsApi',
+function ($window, $document, $q, MapsExtension, MapsApi) {
   var deferred = $q.defer(),
     document = $document[0],
     cbName = 'bmMapsReadyCallback',
@@ -14,8 +14,9 @@ function ($window, $document, $q, MapsExtension) {
 
   $window[cbName] = function () {
     delete $window[cbName];
-    angular.extend($window.google.maps, MapsExtension);
-    deferred.resolve($window.google.maps);
+    angular.extend(MapsApi, $window.google.maps);
+    angular.extend(MapsApi, MapsExtension);
+    deferred.resolve(MapsApi);
   };
 
   document.body.appendChild(script);
@@ -23,30 +24,7 @@ function ($window, $document, $q, MapsExtension) {
   return deferred.promise;
 }])
 
-.service('bm.MapsExtension', ['$parse',
-function ($parse) {
-  return {
-    instances: [],
-    addEventListeners: function (obj, el, events, prefix) {
-      var that = this;
-      angular.forEach(events, function (event) {
-        that.event.addListener(obj, event, function (e) {
-          el.triggerHandler(prefix + event, e);
-        });
-      });
-    },
-    parseEvents: function (eventsObj, el, map) {
-      var that = this;
-      angular.forEach(eventsObj, function (event, name) {
-        el.bind(name, function (e) {
-          arguments[1].map = map;
-          event.apply(that, arguments);
-        });
-      });
-    }
-  };
-}])
-
+.value('bm.MapsApi', {})
 .value('bm.MapEventsPrefix', 'map_')
 .value('bm.MarkerEventsPrefix', 'marker_')
 
@@ -65,6 +43,58 @@ function ($parse) {
   'shape_changed', 'title_changed', 'visible_changed', 'zindex_changed'
 ])
 
+.service('bm.MapsExtension', ['$parse', 'bm.InstanceExtension',
+function ($parse, InstanceExtension) {
+  return {
+    _instances: [],
+    newInstance: function (element, opts) {
+      opts = (opts || {});
+      var map = new this.Map(element[0], opts);
+      angular.extend(map, InstanceExtension);
+      map.element = element;
+      this._instances.push(map);
+      return map;
+    },
+    addEventListeners: function (obj, el, events, prefix) {
+      var that = this;
+      angular.forEach(events, function (event) {
+        that.event.addListener(obj, event, function (e) {
+          el.triggerHandler(prefix + event, e);
+        });
+      });
+    },
+    parseEvents: function (eventsObj, el, map) {
+      var that = this;
+      angular.forEach(eventsObj, function (event, name) {
+        el.bind(name, function (e) {
+          if (arguments[1]) {
+            arguments[1].map = map;
+          }
+          event.apply(that, arguments);
+        });
+      });
+    }
+  };
+}])
+
+.service('bm.InstanceExtension', ['$parse', 'bm.MapsApi', 'bm.MarkerEvents', 'bm.MarkerEventsPrefix',
+function ($parse, MapsApi, Events, EventsPrefix) {
+  return {
+    _markers: [],
+    element: null,
+    addMarker: function (opts) {
+      opts = (opts || {});
+      opts.map = this;
+      opts.position = (opts.position || this.center);
+
+      var marker = new MapsApi.Marker(opts);
+      MapsApi.addEventListeners(marker, this.element, Events, EventsPrefix);
+      this._markers.push(marker);
+      return marker;
+    }
+  };
+}])
+
 .directive('betterMap', ['$q', '$timeout', 'bm.Maps', 'bm.MapEvents', 'bm.MapEventsPrefix',
 function ($q, $timeout, Maps, Events, EventsPrefix) {
   return {
@@ -76,15 +106,13 @@ function ($q, $timeout, Maps, Events, EventsPrefix) {
       that.wait = [];
       that.mapLoaded = mapLoaded.promise;
 
-      Maps.then(function (maps) {
+      Maps.then(function (api) {
         $q.all(that.wait).then(function () {
           var opts = that.options || {},
-            map = new maps.Map(el[0], opts);
+            map = api.newInstance(el, opts);
 
-          maps.instances.push(map);
           mapLoaded.resolve(map);
-
-          maps.addEventListeners(map, el, Events, EventsPrefix);
+          api.addEventListeners(map, el, Events, EventsPrefix);
         });
       });
     }]
@@ -104,14 +132,14 @@ function ($q, $parse, Maps) {
       bmCtrl.wait.push(events);
 
       $q.all([Maps, events, bmCtrl.mapLoaded]).then(function (args) {
-        var maps = args[0],
+        var api = args[0],
           evts = args[1],
           map = args[2];
 
         if (model.assign) {
           model.assign(scope, evts);
         }
-        maps.parseEvents(evts, el, map);
+        api.parseEvents(evts, el, map);
       });
     }
   }
@@ -152,50 +180,13 @@ function ($q, Maps) {
 
       $q.all([onload, Maps, bmCtrl.mapLoaded]).then(function (args) {
         var ol = args[0],
-          maps = args[1],
+          api = args[1],
           map = args[2];
 
-        ol.call(maps, map);
+        ol.call(api, map);
       });
     }
   }
-}])
-
-.directive('bmMarkers', ['$q', '$parse', 'bm.Maps', 'bm.MarkerEvents', 'bm.MarkerEventsPrefix',
-function ($q, $parse, Maps, Events, EventsPrefix) {
-  return {
-    restrict: 'A',
-    require: 'betterMap',
-    link: function (scope, el, attrs, bmCtrl) {
-      var model = $parse(attrs.bmMarkers),
-        markers = model(scope);
-
-      markers = $q.when(markers);
-      bmCtrl.wait.push(markers);
-
-      $q.all([markers, Maps, bmCtrl.mapLoaded]).then(function (args) {
-        var mrkrs = args[0],
-          maps = args[1];
-
-        if (model.assign) {
-          model.assign(scope, mrkrs);
-        }
-
-        scope.$watch(attrs.bmMarkers, function (newObj) {
-          if (!newObj) {
-            return
-          } else if (!angular.isArray(newObj)) {
-            newObj = [newObj];
-          }
-
-          angular.forEach(newObj, function (obj) {
-            maps.addEventListeners(newObj, el, Events, EventsPrefix);
-          });
-        });
-
-      });
-    }
-  }
-}])
+}]);
 
 })(window, window.angular);

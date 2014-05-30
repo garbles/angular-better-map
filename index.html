@@ -7,7 +7,7 @@
     <script type='text/javascript' charset='utf-8' src='src/angular-better-map.js'></script>
   </head>
   <body ng-controller='gabe'>
-    <div id='map' better-map bm-events='events' bm-options='options' bm-markers='markers' bm-onload='addCenterMarker'></div>
+    <div id='map' better-map bm-events='events' bm-options='options' bm-onload='addCenterMarker'></div>
     <style>
       #map {
         height: 400px;
@@ -17,28 +17,30 @@
     <script type='text/javascript' charset='utf-8'>
       angular.module('app', ['betterMap'])
       .controller('gabe', ['$scope', 'bm.Maps', function ($scope, Maps) {
-        $scope.markers = [];
 
-        $scope.options = Maps.then(function (maps) {
-          return { zoom: 15, center: new maps.LatLng(35.784, -78.670) }
+        $scope.options = Maps.then(function (api) {
+          return { zoom: 15, center: new api.LatLng(35.784, -78.670) }
         });
 
-        $scope.events = Maps.then(function (maps) {
-          return { map_click: $scope.click };
+        $scope.events = Maps.then(function () {
+          return {
+            map_click: mapClick,
+            marker_click: markerClick
+          };
         });
 
-        $scope.click = function (e, params) {
-          $scope.markers.push(new this.Marker({
-            map: params.map,
+        function mapClick (e, params) {
+          params.map.addMarker({
             position: params.latLng
-          }));
-        };
+          });
+        }
+
+        function markerClick (e, params) {
+          alert('hi');
+        }
 
         $scope.addCenterMarker = function (map) {
-          $scope.markers.push(new this.Marker({
-            map: map,
-            position: map.center
-          }));
+          map.addMarker({});
         }
 
       }]);
